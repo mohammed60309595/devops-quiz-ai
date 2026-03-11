@@ -37,10 +37,19 @@ jobs:
             --name quiz-smoke \
             ${{ secrets.DOCKERHUB_USERNAME }}/devops-quiz-ai:latest
           sleep 15
-          RESPONSE=$(curl -s http://localhost:5000/api/health)
-          echo "Health response: $RESPONSE"
-          echo "$RESPONSE" | grep -q "ok"
+          for i in 1 2 3 4 5; do
+            RESPONSE=$(curl -s http://localhost:5000/api/health || echo "")
+            echo "Attempt $i: $RESPONSE"
+            if echo "$RESPONSE" | grep -q "ok"; then
+              echo "Health check passed!"
+              docker stop quiz-smoke
+              exit 0
+            fi
+            sleep 5
+          done
+          docker logs quiz-smoke
           docker stop quiz-smoke
+          exit 1
 
       - name: Push to Docker Hub
         if: github.event_name == 'push'
